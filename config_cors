@@ -1,3 +1,0 @@
-# Añadir estas lineas en el fichero elasticsearch.yml
-http.cors.enabled: true
-http.cors.allow-origin: "*"

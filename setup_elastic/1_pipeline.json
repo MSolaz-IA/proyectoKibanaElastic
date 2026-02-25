@@ -1,0 +1,43 @@
+{
+  "description": "Ingest pipeline a prueba de fallos de columnas",
+  "processors": [
+    {
+      "csv": {
+        "field": "message",
+        "target_fields": [
+          "isbn",
+          "titulo",
+          "autor",
+          "anyoPublicacion",
+          "editorial",
+          "image_URL_S",
+          "image_URL_M",
+          "image_URL_L"
+        ],
+        "separator": ";",
+        "quote": "\"",
+        "ignore_missing": false
+      }
+    },
+    {
+      "script": {
+        "description": "Filtro estricto: Si no es un número válido o es 0, borra el campo",
+        "lang": "painless",
+        "source": "if (ctx.containsKey('anyoPublicacion') && ctx.anyoPublicacion != null) { try { int year = Integer.parseInt(ctx.anyoPublicacion.toString().trim()); if (year == 0) { ctx.remove('anyoPublicacion'); } else { ctx.anyoPublicacion = Integer.toString(year); } } catch (Exception e) { ctx.remove('anyoPublicacion'); } }"
+      }
+    },
+    {
+      "date": {
+        "field": "anyoPublicacion",
+        "formats": ["yyyy"],
+        "ignore_failure": true
+      }
+    },
+    {
+      "remove": {
+        "field": "message",
+        "ignore_failure": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+PUT _scripts/template_libro_titulo
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "match": {
+          "titulo": {
+            "query": "{{titulo}}",
+            "operator": "and"
+          }
+        }
+      }
+    }
+  }
+}
+
+PUT _scripts/template_libro_autor
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "match_phrase": {
+          "autor": "{{autor}}"
+        }
+      }
+    }
+  }
+}
+
+PUT _scripts/template_libro_anyoPublicacion
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "range": {
+          "anyoPublicacion": {
+            "gte": "{{anio_desde}}",
+            "lte": "{{anio_hasta}}"
+          }
+        }
+      }
+    }
+  }
+}
+
+PUT _scripts/template_libro_editorial
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "editorial": "{{editorial_incluir}}"
+              }
+            }
+          ],
+          "must_not": [
+            {
+              "match": {
+                "editorial": "{{editorial_excluir}}"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+PUT _scripts/template_libros_multiple
+{
+  "script": {
+    "lang": "mustache",
+    "source": {
+      "query": {
+        "multi_match": {
+          "query": "{{termino_busqueda}}",
+          "fields": ["titulo", "autor", "anyoPublicacion", "editorial"],
+          "lenient": true
+        }
+      }
+    }
+  }
+}
