@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Libros - Elasticsearch</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f9f9f9; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 30px;}
+        select, input, button { padding: 12px; margin: 8px 0; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        button { background-color: #005571; color: white; cursor: pointer; font-weight: bold; border: none; }
+        button:hover { background-color: #003d52; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .input-group { display: none; margin-bottom: 20px; }
+        .active { display: block; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 14px; }
+        .result-item { border-left: 4px solid #005571; background: #f4f4f4; padding: 10px 15px; margin-bottom: 10px; border-radius: 0 4px 4px 0; }
+        
+        /* Estilos para el bloque de edición */
+        .flex-row { display: flex; gap: 10px; align-items: center; }
+        .flex-row input { flex: 1; margin: 0; }
+        .flex-row button { width: auto; margin: 0; padding: 12px 24px; }
+        .edit-form { background: #fdfdfd; border: 1px solid #e0e0e0; padding: 20px; border-radius: 5px; display: none; margin-top: 15px; }
+        .edit-form label { font-weight: bold; color: #333; display: block; margin-top: 10px; }
+        .msg { font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Buscador de Libros</h1>
+        
+        <label for="tipoBusqueda"><strong>Selecciona el tipo de búsqueda:</strong></label>
+        <select id="tipoBusqueda" onchange="cambiarInputs()">
+            <option value="all" selected>Buscar en Todo (Todos los campos)</option>
+            <option value="title">Título del Libro</option>
+            <option value="author">Autor</option>
+            <option value="year">Año de Publicación</option>
+            <option value="publisher">Editorial</option>
+        </select>
+
+        <div id="input-all" class="input-group active">
+            <input type="text" id="val-all" placeholder="Término a buscar en cualquier campo...">
+        </div>
+        <div id="input-title" class="input-group">
+            <input type="text" id="val-title" placeholder="Escribe el título (ej: Harry Potter)...">
+        </div>
+        <div id="input-author" class="input-group">
+            <input type="text" id="val-author" placeholder="Escribe el autor (ej: Tolkien)...">
+        </div>
+        <div id="input-year" class="input-group">
+            <input type="number" id="val-year-desde" placeholder="Año de inicio (ej: 1990)...">
+            <input type="number" id="val-year-hasta" placeholder="Año de fin (ej: 2005)...">
+        </div>
+        <div id="input-publisher" class="input-group">
+            <input type="text" id="val-pub-inc" placeholder="Editorial que DEBE contener...">
+            <input type="text" id="val-pub-exc" placeholder="Editorial que NO debe contener...">
+        </div>
+
+        <button onclick="buscar()">Enviar consulta a Elasticsearch</button>
+
+        <h2>Resultados Pintados:</h2>
+        <div id="resultados"><p>Realiza una búsqueda para ver resultados.</p></div>
+        
+        <details>
+            <summary style="cursor: pointer; font-weight: bold; color: #005571;">Ver JSON de Respuesta (Crudo)</summary>
+            <pre id="jsonCrudo">Esperando respuesta del servidor...</pre>
+        </details>
+    </div>
+
+    <div class="container">
+        <h1>Edición de Libro por ISBN</h1>
+        
+        <div class="flex-row">
+            <input type="text" id="search-isbn" placeholder="Introduce el ISBN del libro a buscar...">
+            <button onclick="buscarPorISBN()">Buscar Libro</button>
+        </div>
+        <p id="msg-busqueda" class="msg"></p>
+
+        <div id="formulario-edicion" class="edit-form">
+            <input type="hidden" id="edit-doc-id">
+            
+            <label>ISBN (Lectura):</label>
+            <input type="text" id="edit-isbn" disabled style="background:#eee;">
+            
+            <label>Título del Libro:</label>
+            <input type="text" id="edit-title">
+            
+            <label>Autor:</label>
+            <input type="text" id="edit-author">
+            
+            <label>Año de Publicación:</label>
+            <input type="number" id="edit-year">
+            
+            <label>Editorial:</label>
+            <input type="text" id="edit-publisher">
+            
+            <button class="btn-success" onclick="actualizarLibro()">Actualizar Datos</button>
+            <p id="msg-actualizacion" class="msg"></p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN GLOBAL ---
+        // ¡OJO! Asegúrate de que este es el nombre de tu índice
+        const INDICE = "libros-intento1"; 
+        const BASE_URL = `http://localhost:9200/${INDICE}`;
+
+        // ==========================================
+        // LÓGICA DE LA PARTE 1 (BUSCADOR)
+        // ==========================================
+        function cambiarInputs() {
+            document.querySelectorAll('.input-group').forEach(el => el.classList.remove('active'));
+            const seleccion = document.getElementById('tipoBusqueda').value;
+            document.getElementById('input-' + seleccion).classList.add('active');
+        }
+
+        async function buscar() {
+            const tipo = document.getElementById('tipoBusqueda').value;
+            const url = `${BASE_URL}/_search/template`;
+            let bodyData = {};
+
+            if (tipo === 'all') {
+                bodyData = { id: "template_libros_multiple", params: { termino_busqueda: document.getElementById('val-all').value } };
+            } else if (tipo === 'title') {
+                bodyData = { id: "template_libro_titulo", params: { titulo: document.getElementById('val-title').value } };
+            } else if (tipo === 'author') {
+                bodyData = { id: "template_libro_autor", params: { autor: document.getElementById('val-author').value } };
+            } else if (tipo === 'year') {
+                bodyData = { id: "template_libro_anyoPublicacion", params: { anio_desde: document.getElementById('val-year-desde').value, anio_hasta: document.getElementById('val-year-hasta').value } };
+            } else if (tipo === 'publisher') {
+                bodyData = { id: "template_libro_editorial", params: { editorial_incluir: document.getElementById('val-pub-inc').value, editorial_excluir: document.getElementById('val-pub-exc').value } };
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bodyData)
+                });
+                const data = await response.json();
+                
+                document.getElementById('jsonCrudo').textContent = JSON.stringify(data, null, 2);
+                const resultadosDiv = document.getElementById('resultados');
+                resultadosDiv.innerHTML = ''; 
+                
+                if(data.hits && data.hits.hits.length > 0) {
+                    data.hits.hits.forEach(hit => {
+                        const src = hit._source;
+                        resultadosDiv.innerHTML += `
+                            <div class="result-item">
+                                <strong>${src['titulo']}</strong><br>
+                                🧔 ${src['autor']} | 📅 ${src['anyoPublicacion']} | 🏢 ${src['editorial']} | 📖 ISBN: ${src['isbn'] || 'N/A'}
+                            </div>
+                        `;
+                    });
+                } else {
+                    resultadosDiv.innerHTML = '<p style="color:red;">No se encontraron libros.</p>';
+                }
+            } catch (error) {
+                document.getElementById('jsonCrudo').textContent = "Error: " + error.message;
+            }
+        }
+
+        // ==========================================
+        // LÓGICA DE LA PARTE 2 (EDICIÓN)
+        // ==========================================
+        
+        // Función para buscar un libro específico por su ISBN
+        async function buscarPorISBN() {
+            const isbnBuscado = document.getElementById('search-isbn').value;
+            const url = `${BASE_URL}/_search`;
+            
+            const queryData = {
+                "query": {
+                    "match": { "isbn": isbnBuscado }
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(queryData)
+                });
+                const data = await response.json();
+
+                const msgElement = document.getElementById('msg-busqueda');
+                const formElement = document.getElementById('formulario-edicion');
+                document.getElementById('msg-actualizacion').textContent = ''; // Limpiar mensajes anteriores
+
+                if (data.hits && data.hits.hits.length > 0) {
+                    // Tomamos el primer resultado que coincida
+                    const libro = data.hits.hits[0];
+                    const src = libro._source;
+
+                    // Rellenamos el formulario
+                    document.getElementById('edit-doc-id').value = libro._id; // ¡El ID interno!
+                    document.getElementById('edit-isbn').value = src['isbn'] || isbnBuscado;
+                    document.getElementById('edit-title').value = src['titulo'] || '';
+                    document.getElementById('edit-author').value = src['autor'] || '';
+                    document.getElementById('edit-year').value = src['anyoPublicacion'] || '';
+                    document.getElementById('edit-publisher').value = src['editorial'] || '';
+                    msgElement.textContent = '✅ Libro encontrado. Ya puedes editarlo.';
+                    msgElement.style.color = 'green';
+                    formElement.style.display = 'block'; // Mostramos el formulario
+                } else {
+                    msgElement.textContent = '❌ No se encontró ningún libro con ese ISBN.';
+                    msgElement.style.color = 'red';
+                    formElement.style.display = 'none'; // Ocultamos el formulario
+                }
+
+            } catch (error) {
+                console.error("Error al buscar ISBN:", error);
+            }
+        }
+
+        // Función para enviar los datos modificados al servidor
+        async function actualizarLibro() {
+            // Obtenemos el ID interno que guardamos oculto
+            const docId = document.getElementById('edit-doc-id').value;
+            
+            // Endpoint de actualización: POST /indice/_update/id
+            const url = `${BASE_URL}/_update/${docId}`;
+            
+            const datosActualizados = {
+                "doc": {
+                    "titulo": document.getElementById('edit-title').value,
+                    "autor": document.getElementById('edit-author').value,
+                    "anyoPublicacion": document.getElementById('edit-year').value,
+                    "editorial": document.getElementById('edit-publisher').value
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datosActualizados)
+                });
+                const data = await response.json();
+                
+                const msgElement = document.getElementById('msg-actualizacion');
+
+                if (data.result === "updated" || data.result === "noop") {
+                    msgElement.textContent = "🎉 ¡Datos actualizados correctamente en Elasticsearch!";
+                    msgElement.style.color = "green";
+                } else {
+                    msgElement.textContent = "⚠️ Hubo un problema al actualizar: " + JSON.stringify(data);
+                    msgElement.style.color = "orange";
+                }
+
+            } catch (error) {
+                console.error("Error al actualizar:", error);
+                document.getElementById('msg-actualizacion').textContent = "❌ Error de conexión al actualizar.";
+                document.getElementById('msg-actualizacion').style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>
