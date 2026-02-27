@@ -1,0 +1,200 @@
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 40px;
+            background-color: #f9f9f9;
+        }
+
+        .container-welcome {
+            max-width: 400px;
+            float: left;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .container-resultados-busqueda{
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+            display: none;
+            flex-wrap: wrap;
+        }
+
+        .container-resultados-busqueda.visible {
+            display: flex;
+        }
+
+        .container-resultados-busqueda > h2 {
+            width: 100%;
+            flex-basis: 100%;
+            margin: 0 0 10px 0;
+            padding: 0;
+        }
+
+        #resultados {
+            flex: 1;
+            min-width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .container-resultados-JSON{
+            background: white;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .container-edicion-ISBN{
+            max-width: 600px;
+            height: 150px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            margin-left: 50px;
+        }
+
+        .container-busqueda {
+            max-width: 600px;
+            height: 392px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            margin-left: 50px;
+        }
+
+
+        .container-flex {
+            display: flex;
+            max-width: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .container-editar-libro{
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
+            display: none;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .container-editar-libro.visible {
+            display: block;
+        }
+
+        select,
+        input,
+        button {
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #005571;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+        }
+
+        button:hover {
+            background-color: #003d52;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .input-group {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .active {
+            display: block;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+
+        .container-resultados-JSON pre {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            width: 750px;
+            border-left: 4px solid #005571;
+            background: #f4f4f4;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Estilos para el bloque de edición */
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .flex-row input {
+            flex: 1;
+            margin: 0;
+        }
+
+        .flex-row button {
+            width: auto;
+            margin: 0;
+            padding: 12px 24px;
+        }
+
+        .edit-form {
+            background: #fdfdfd;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+            margin-top: 15px;
+        }
+
+        .edit-form label {
+            font-weight: bold;
+            color: #333;
+            display: block;
+            margin-top: 10px;
+        }
+
+        .msg {
+            font-weight: bold;
+            margin-top: 10px;
+        }
