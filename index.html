@@ -14,14 +14,15 @@
             <p>En esta aplicación podrás buscar libros utilizando diferentes criterios y también editar la información
                 de un libro específico a través de su ISBN. <br> ¡Explora las funcionalidades y gestiona tu colección de
                 libros de manera eficiente!</p>
-            <p>Escribe en este campo el nombre del índice de Elasticsearch:</p><input id="nombre-indice" type="text">
+            <p>Escribe en este campo el nombre del índice de Elasticsearch:</p>
+            <input id="nombre-indice" type="text" value="libros">
         </div>
 
         <div class="container-busqueda">
             <h1>Buscador de Libros</h1>
 
             <label for="tipoBusqueda"><strong>Selecciona el tipo de búsqueda:</strong></label>
-            <select id="tipoBusqueda" onchange="cambiarInputs()">
+            <select id="tipoBusqueda">
                 <option value="all" selected>Buscar en Todo (Todos los campos)</option>
                 <option value="title">Título del Libro</option>
                 <option value="author">Autor</option>
@@ -47,7 +48,7 @@
                 <input type="text" id="val-pub-exc" placeholder="Editorial que NO debe contener...">
             </div>
 
-            <button onclick="buscar()">Enviar consulta a Elasticsearch</button>
+            <button id="btn-buscar">Enviar consulta a Elasticsearch</button>
         </div>
 
         <div class="container-edicion-ISBN">
@@ -55,226 +56,72 @@
 
             <div class="flex-row">
                 <input type="text" id="search-isbn" placeholder="Introduce el ISBN del libro a buscar...">
-                <button onclick="buscarPorISBN()">Buscar Libro</button>
+                <button id="btn-buscar-isbn">Buscar Libro</button>
             </div>
             <p id="msg-busqueda" class="msg"></p>
         </div>
     </div>
 
     <div id="container-editar-libro" class="container-editar-libro">
-            <div id="formulario-edicion" class="edit-form">
-                <input type="hidden" id="edit-doc-id">
+        <div id="formulario-edicion" class="edit-form" style="display: none;">
+            <input type="hidden" id="edit-doc-id">
 
-                <label>ISBN (Lectura):</label>
-                <input type="text" id="edit-isbn" disabled style="background:#eee;">
+            <label>ISBN (Lectura):</label>
+            <input type="text" id="edit-isbn" disabled style="background:#eee;">
 
-                <label>Título del Libro:</label>
-                <input type="text" id="edit-title">
+            <label>Título del Libro:</label>
+            <input type="text" id="edit-title">
 
-                <label>Autor:</label>
-                <input type="text" id="edit-author">
+            <label>Autor:</label>
+            <input type="text" id="edit-author">
 
-                <label>Año de Publicación:</label>
-                <input type="number" id="edit-year">
+            <label>Año de Publicación:</label>
+            <input type="number" id="edit-year">
 
-                <label>Editorial:</label>
-                <input type="text" id="edit-publisher">
+            <label>Editorial:</label>
+            <input type="text" id="edit-publisher">
 
-                <button class="btn-success" onclick="actualizarLibro()">Actualizar Datos</button>
-                <p id="msg-actualizacion" class="msg"></p>
-            </div>
+            <button id="btn-actualizar" class="btn-success">Actualizar Datos</button>
+            <p id="msg-actualizacion" class="msg"></p>
         </div>
+    </div>
 
     <div id="container-resultados-busqueda" class="container-resultados-busqueda">
         <h2>Resultados Pintados:</h2>
-        <div id="resultados">
-            <p>Realiza una búsqueda para ver resultados.</p>
+        
+        <div id="wrapper-resultados-portada" class="wrapper-resultados">
+            
+            <div id="columna-resultados">
+                <div id="resultados" class="grid-2-cols">
+                    <p>Realiza una búsqueda para ver resultados.</p>
+                </div>
+            </div>
+
+            <div id="columna-portada" class="oculto">
+                <button id="btn-cerrar-portada">❌ Cerrar</button>
+                <h3 id="titulo-portada" style="text-align: center; margin-top: 0;">Título</h3>
+                <img id="img-portada" src="" alt="Portada del libro">
+            </div>
+
         </div>
 
-        <div class="container-resultados-JSON">
-            <details>
-                <summary style="cursor: pointer; font-weight: bold; color: #005571;">Ver JSON de Respuesta (Crudo)
-                </summary>
-                <pre id="jsonCrudo">Esperando respuesta del servidor...</pre>
-            </details>
+        <div id="controles-paginacion" style="display:none; text-align: center; margin-top: 20px; gap: 10px;">
+            <button id="btn-anterior">← Anterior</button>
+            <span id="info-paginacion" style="margin: 0 20px; font-weight: bold;">Página <span id="pagina-actual">1</span> de <span id="total-paginas">1</span></span>
+            <button id="btn-siguiente">Siguiente →</button>
         </div>
 
+        
     </div>
 
+    <div class="container-resultados-JSON">
+            <details>
+                <summary style="cursor: pointer; font-weight: bold; color: #005571;">Ver JSON de Respuesta (Crudo)</summary>
+                <pre id="jsonCrudo">Esperando respuesta del servidor...</pre>
+            </details>
+    </div>
 
-    <script>
-        // --- CONFIGURACIÓN GLOBAL ---
-        // ¡OJO! Asegúrate de que este es el nombre de tu índice
-        const INDICE = document.getElementById('nombre-indice').value || 'libros'; // Puedes cambiar 'libros' por el nombre real de tu índice
-        const BASE_URL = `http://localhost:9200/${INDICE}`;
-
-        // ==========================================
-        // LÓGICA DE LA PARTE 1 (BUSCADOR)
-        // ==========================================
-        function cambiarInputs() {
-            document.querySelectorAll('.input-group').forEach(el => el.classList.remove('active'));
-            const seleccion = document.getElementById('tipoBusqueda').value;
-            document.getElementById('input-' + seleccion).classList.add('active');
-        }
-
-        async function buscar() {
-            const tipo = document.getElementById('tipoBusqueda').value;
-            const url = `${BASE_URL}/_search/template`;
-            let bodyData = {};
-
-            if (tipo === 'all') {
-                bodyData = { id: "template_libros_multiple", params: { termino_busqueda: document.getElementById('val-all').value } };
-            } else if (tipo === 'title') {
-                bodyData = { id: "template_libro_titulo", params: { titulo: document.getElementById('val-title').value } };
-            } else if (tipo === 'author') {
-                bodyData = { id: "template_libro_autor", params: { autor: document.getElementById('val-author').value } };
-            } else if (tipo === 'year') {
-                bodyData = { id: "template_libro_anyoPublicacion", params: { anio_desde: document.getElementById('val-year-desde').value, anio_hasta: document.getElementById('val-year-hasta').value } };
-            } else if (tipo === 'publisher') {
-                bodyData = { id: "template_libro_editorial", params: { editorial_incluir: document.getElementById('val-pub-inc').value, editorial_excluir: document.getElementById('val-pub-exc').value } };
-            }
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bodyData)
-                });
-                const data = await response.json();
-
-                // Mostrar el contenedor de resultados y ocultar el de edición
-                document.getElementById('container-resultados-busqueda').classList.add('visible');
-                document.getElementById('container-editar-libro').classList.remove('visible');
-
-                document.getElementById('jsonCrudo').textContent = JSON.stringify(data, null, 2);
-                const resultadosDiv = document.getElementById('resultados');
-                resultadosDiv.innerHTML = '';
-
-                if (data.hits && data.hits.hits.length > 0) {
-                    data.hits.hits.forEach(hit => {
-                        const src = hit._source;
-                        resultadosDiv.innerHTML += `
-                            <div class="result-item">
-                                <strong>${src['titulo']}</strong><br>
-                                🧔 ${src['autor']} | 📅 ${src['anyoPublicacion']} | 🏢 ${src['editorial']} | 📖 ISBN: ${src['isbn'] || 'N/A'}
-                            </div>
-                        `;
-                    });
-                } else {
-                    resultadosDiv.innerHTML = '<p style="color:red;">No se encontraron libros.</p>';
-                }
-            } catch (error) {
-                document.getElementById('jsonCrudo').textContent = "Error: " + error.message;
-            }
-        }
-
-        // ==========================================
-        // LÓGICA DE LA PARTE 2 (EDICIÓN)
-        // ==========================================
-
-        // Función para buscar un libro específico por su ISBN
-        async function buscarPorISBN() {
-            const isbnBuscado = document.getElementById('search-isbn').value;
-            const url = `${BASE_URL}/_search`;
-
-            const queryData = {
-                "query": {
-                    "match": { "isbn": isbnBuscado }
-                }
-            };
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(queryData)
-                });
-                const data = await response.json();
-
-                // Ocultar el contenedor de resultados de búsqueda
-                document.getElementById('container-resultados-busqueda').classList.remove('visible');
-
-                const msgElement = document.getElementById('msg-busqueda');
-                const formElement = document.getElementById('formulario-edicion');
-                const containerEditar = document.getElementById('container-editar-libro');
-                document.getElementById('msg-actualizacion').textContent = ''; // Limpiar mensajes anteriores
-
-                if (data.hits && data.hits.hits.length > 0) {
-                    // Tomamos el primer resultado que coincida
-                    const libro = data.hits.hits[0];
-                    const src = libro._source;
-
-                    // Rellenamos el formulario
-                    document.getElementById('edit-doc-id').value = libro._id; // ¡El ID interno!
-                    document.getElementById('edit-isbn').value = src['isbn'] || isbnBuscado;
-                    document.getElementById('edit-title').value = src['titulo'] || '';
-                    document.getElementById('edit-author').value = src['autor'] || '';
-                    document.getElementById('edit-year').value = src['anyoPublicacion'] || '';
-                    document.getElementById('edit-publisher').value = src['editorial'] || '';
-                    msgElement.textContent = '✅ Libro encontrado. Ya puedes editarlo.';
-                    msgElement.style.color = 'green';
-                    formElement.style.display = 'block'; // Mostramos el formulario
-                    containerEditar.classList.add('visible'); // Mostramos el contenedor
-                } else {
-                    msgElement.textContent = '❌ No se encontró ningún libro con ese ISBN.';
-                    msgElement.style.color = 'red';
-                    formElement.style.display = 'none'; // Ocultamos el formulario
-                    containerEditar.classList.remove('visible'); // Ocultamos el contenedor
-                }
-
-            } catch (error) {
-                console.error("Error al buscar ISBN:", error);
-            }
-        }
-
-        // Función para enviar los datos modificados al servidor
-        async function actualizarLibro() {
-            // Obtenemos el ID interno que guardamos oculto
-            const docId = document.getElementById('edit-doc-id').value;
-
-            // Endpoint de actualización: POST /indice/_update/id
-            const url = `${BASE_URL}/_update/${docId}`;
-
-            const datosActualizados = {
-                "doc": {
-                    "titulo": document.getElementById('edit-title').value,
-                    "autor": document.getElementById('edit-author').value,
-                    "anyoPublicacion": document.getElementById('edit-year').value,
-                    "editorial": document.getElementById('edit-publisher').value
-                }
-            };
-
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(datosActualizados)
-                });
-                const data = await response.json();
-
-                const msgElement = document.getElementById('msg-actualizacion');
-
-                if (data.result === "updated" || data.result === "noop") {
-                    msgElement.textContent = "🎉 ¡Datos actualizados correctamente en Elasticsearch!";
-                    msgElement.style.color = "green";
-                    // Ocultar el contenedor de edición después de 2 segundos
-                    setTimeout(() => {
-                        document.getElementById('container-editar-libro').classList.remove('visible');
-                        document.getElementById('msg-busqueda').hidden = true;
-                    }, 2000);
-                    
-                } else {
-                    msgElement.textContent = "⚠️ Hubo un problema al actualizar: " + JSON.stringify(data);
-                    msgElement.style.color = "orange";
-                }
-
-            } catch (error) {
-                console.error("Error al actualizar:", error);
-                document.getElementById('msg-actualizacion').textContent = "❌ Error de conexión al actualizar.";
-                document.getElementById('msg-actualizacion').style.color = "red";
-            }
-        }
-    </script>
+    <script src="app.js" defer></script>
 </body>
 
 </html>

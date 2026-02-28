@@ -7,8 +7,17 @@ PUT _scripts/template_libro_titulo
         "match": {
           "titulo": {
             "query": "{{titulo}}",
-            "operator": "and"
+            "operator": "and",
+            "fuzziness": "AUTO",
+            "prefix_length": 1
           }
+        }
+      },
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "highlight": {
+        "fields": {
+          "titulo": {}
         }
       }
     }
@@ -21,10 +30,30 @@ PUT _scripts/template_libro_autor
     "lang": "mustache",
     "source": {
       "query": {
-        "match_phrase": {
-          "autor": "{{autor}}"
+        "bool": {
+          "should": [
+            {
+              "match_phrase": {
+                "autor": {
+                  "query": "{{autor}}",
+                  "boost": 2.0
+                }
+              }
+            },
+            {
+              "match": {
+                "autor": {
+                  "query": "{{autor}}",
+                  "fuzziness": "AUTO"
+                }
+              }
+            }
+          ],
+          "minimum_should_match": 1
         }
-      }
+      },
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "from": "{{from}}{{^from}}0{{/from}}"
     }
   }
 }
@@ -41,7 +70,13 @@ PUT _scripts/template_libro_anyoPublicacion
             "lte": "{{anio_hasta}}"
           }
         }
-      }
+      },
+      "sort": [
+        { "anyoPublicacion": { "order": "desc" } },
+        "_score"
+      ],
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "from": "{{from}}{{^from}}0{{/from}}"
     }
   }
 }
@@ -56,19 +91,27 @@ PUT _scripts/template_libro_editorial
           "must": [
             {
               "match": {
-                "editorial": "{{editorial_incluir}}"
+                "editorial": {
+                  "query": "{{editorial_incluir}}",
+                  "fuzziness": "AUTO"
+                }
               }
             }
-          ],
+          ]
+          {{#editorial_excluir}}
+          ,
           "must_not": [
             {
-              "match": {
+              "match_phrase": {
                 "editorial": "{{editorial_excluir}}"
               }
             }
           ]
+          {{/editorial_excluir}}
         }
-      }
+      },
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "from": "{{from}}{{^from}}0{{/from}}"
     }
   }
 }
@@ -81,8 +124,26 @@ PUT _scripts/template_libros_multiple
       "query": {
         "multi_match": {
           "query": "{{termino_busqueda}}",
-          "fields": ["titulo", "autor", "anyoPublicacion", "editorial"],
+          "fields": [
+            "titulo^3", 
+            "autor^2", 
+            "editorial", 
+            "anyoPublicacion"
+          ],
+          "type": "best_fields",
+          "fuzziness": "AUTO",
           "lenient": true
+        }
+      },
+      "size": "{{size}}{{^size}}10{{/size}}",
+      "from": "{{from}}{{^from}}0{{/from}}",
+      "highlight": {
+        "pre_tags": ["<mark style='background-color: #ffd54f;'>"],
+        "post_tags": ["</mark>"],
+        "fields": {
+          "titulo": {},
+          "autor": {},
+          "editorial": {}
         }
       }
     }

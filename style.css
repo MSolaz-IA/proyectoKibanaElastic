@@ -14,7 +14,7 @@
             margin-bottom: 30px;
         }
 
-        .container-resultados-busqueda{
+        .container-resultados-busqueda {
             background: white;
             padding: 15px;
             border-radius: 8px;
@@ -28,7 +28,7 @@
             display: flex;
         }
 
-        .container-resultados-busqueda > h2 {
+        .container-resultados-busqueda>h2 {
             width: 100%;
             flex-basis: 100%;
             margin: 0 0 10px 0;
@@ -42,13 +42,16 @@
             overflow-y: auto;
         }
 
-        .container-resultados-JSON{
+        .container-resultados-JSON {
             background: white;
-            flex: 1;
             min-width: 300px;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 50px;
         }
 
-        .container-edicion-ISBN{
+        .container-edicion-ISBN {
             max-width: 600px;
             height: 150px;
             background: white;
@@ -81,7 +84,7 @@
             margin-bottom: 30px;
         }
 
-        .container-editar-libro{
+        .container-editar-libro {
             background: white;
             padding: 30px;
             border-radius: 8px;
@@ -197,4 +200,153 @@
         .msg {
             font-weight: bold;
             margin-top: 10px;
+        }
+
+        /* Estilos para controles de paginación */
+        #controles-paginacion {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        #controles-paginacion button {
+            background-color: #005571;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        #controles-paginacion button:hover:not(:disabled) {
+            background-color: #003d52;
+        }
+
+        #controles-paginacion button:disabled {
+            background-color: #b0b0b0;
+            cursor: not-allowed;
+        }
+
+        #info-paginacion {
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* =========================================
+   DISEÑO DE RESULTADOS Y PORTADA
+========================================= */
+
+        /* Contenedor principal para la animación de contraer/expandir */
+        .wrapper-resultados {
+            display: flex;
+            gap: 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* Columna izquierda (Resultados) */
+        #columna-resultados {
+            flex: 1;
+            /* Ocupa todo el ancho por defecto */
+            transition: all 0.3s ease;
+        }
+
+        /* Cuando se activa la portada, la columna izquierda se encoge al 65% */
+        .wrapper-resultados.mostrar-portada #columna-resultados {
+            flex: 0 0 65%;
+        }
+
+        /* Grid de 2 columnas para los registros */
+        .grid-2-cols {
+            display: grid;
+            gap: 15px;
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        /* Solución al desbordamiento en result-item */
+        .result-item {
+            width: 400px;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+
+            /* Evita el overflow cortando las palabras largas */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow: hidden;
+
+            /* Flexbox interno para empujar el botón abajo */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Columna derecha (Panel de Portada) */
+        #columna-portada {
+            flex: 0 0 32%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 1px solid #ddd;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        #columna-portada.oculto {
+            display: none;
+            /* Se oculta por defecto */
+        }
+
+        /* La imagen de la portada */
+        #img-portada {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            max-height: 50vh;
+            object-fit: contain;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+            margin-top: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Botones */
+        .btn-portada {
+            margin-top: 15px;
+            padding: 8px;
+            background-color: #005571;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-portada:hover {
+            background-color: #003d52;
+        }
+
+
+        #btn-cerrar-portada {
+            align-self: flex-end;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 10px;
         }
